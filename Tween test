@@ -1,65 +1,17 @@
---// Configurações
-local aimbotAtivo = false
-local espAtivo = false
+--// Configuração
+local aimbotAtivo = true -- Ative por padrão para testar, troque para false se preferir
+local teamCheckAtivo = true -- TeamCheck ativado por padrão
 
---// Função de Team Check
+--// Função de TeamCheck
 local function isEnemy(player)
     local localPlayer = game.Players.LocalPlayer
+    if not teamCheckAtivo then return true end
+    -- Se algum player não tem Team, não considera inimigo (altere para seu jogo se necessário)
     if not player.Team or not localPlayer.Team then return false end
     return player.Team ~= localPlayer.Team
 end
 
---// Função de ESP
-local function criarESP(player)
-    if not player.Character then return end
-    local head = player.Character:FindFirstChild("Head")
-    if not head then return end
-
-    if not head:FindFirstChild("EspBox") then
-        local box = Instance.new("BillboardGui")
-        box.Name = "EspBox"
-        box.Size = UDim2.new(4,0,4,0)
-        box.Adornee = head
-        box.AlwaysOnTop = true
-        box.Parent = head
-
-        local frame = Instance.new("Frame")
-        frame.Size = UDim2.new(1,0,1,0)
-        frame.BackgroundColor3 = Color3.new(1,0,0)
-        frame.BackgroundTransparency = 0.5
-        frame.BorderSizePixel = 0
-        frame.Parent = box
-    end
-end
-
-local function removerESP(player)
-    if not player.Character then return end
-    local head = player.Character:FindFirstChild("Head")
-    if not head then return end
-    local box = head:FindFirstChild("EspBox")
-    if box then
-        box:Destroy()
-    end
-end
-
---// ESP Loop
-game:GetService("RunService").RenderStepped:Connect(function()
-    if espAtivo then
-        for _,player in ipairs(game.Players:GetPlayers()) do
-            if player ~= game.Players.LocalPlayer and isEnemy(player) then
-                criarESP(player)
-            else
-                removerESP(player)
-            end
-        end
-    else
-        for _,player in ipairs(game.Players:GetPlayers()) do
-            removerESP(player)
-        end
-    end
-end)
-
---// Função de Aimbot
+--// Função para pegar o inimigo mais próximo do mouse
 local uis = game:GetService("UserInputService")
 local camera = workspace.CurrentCamera
 
@@ -83,9 +35,10 @@ local function getClosestEnemy()
     return closestPlayer
 end
 
+--// Aimbot ao pressionar botão direito do mouse
 uis.InputBegan:Connect(function(input, processed)
     if processed then return end
-    if input.UserInputType == Enum.UserInputType.MouseButton2 and aimbotAtivo then -- Botão direito do mouse
+    if input.UserInputType == Enum.UserInputType.MouseButton2 and aimbotAtivo then
         local target = getClosestEnemy()
         if target and target.Character and target.Character:FindFirstChild("Head") then
             camera.CFrame = CFrame.new(camera.CFrame.Position, target.Character.Head.Position)
@@ -93,62 +46,112 @@ uis.InputBegan:Connect(function(input, processed)
     end
 end)
 
---// ScreenGui
+--// ScreeGui setup
 local player = game.Players.LocalPlayer
+local playerGui = player:WaitForChild("PlayerGui")
+
+-- Criar a ScreenGui
 local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "AimbotESP_GUI"
-screenGui.Parent = player:WaitForChild("PlayerGui")
+screenGui.Name = "AimbotGUI"
+screenGui.Parent = playerGui
+screenGui.ResetOnSpawn = false
 
-local frame = Instance.new("Frame")
-frame.Size = UDim2.new(0, 200, 0, 150)
-frame.Position = UDim2.new(0.05, 0, 0.25, 0)
-frame.BackgroundTransparency = 0.2
-frame.BackgroundColor3 = Color3.fromRGB(30,30,30)
-frame.Visible = false
-frame.Parent = screenGui
+-- Frame principal
+local mainFrame = Instance.new("Frame")
+mainFrame.Size = UDim2.new(0, 240, 0, 180)
+mainFrame.Position = UDim2.new(0.5, -120, 0.5, -90)
+mainFrame.BackgroundColor3 = Color3.fromRGB(30,30,30)
+mainFrame.BorderSizePixel = 0
+mainFrame.Visible = true
+mainFrame.Parent = screenGui
 
+-- Título
+local title = Instance.new("TextLabel")
+title.Text = "Aimbot Config"
+title.Size = UDim2.new(1, 0, 0, 36)
+title.BackgroundTransparency = 1
+title.TextColor3 = Color3.fromRGB(255,255,255)
+title.Font = Enum.Font.SourceSansBold
+title.TextSize = 24
+title.Parent = mainFrame
+
+-- Botão de ativar/desativar aimbot
 local aimbotBtn = Instance.new("TextButton")
-aimbotBtn.Size = UDim2.new(1, -20, 0, 40)
-aimbotBtn.Position = UDim2.new(0, 10, 0, 10)
-aimbotBtn.Text = "Aimbot: OFF"
-aimbotBtn.BackgroundTransparency = 0.1
-aimbotBtn.Parent = frame
-
-local espBtn = Instance.new("TextButton")
-espBtn.Size = UDim2.new(1, -20, 0, 40)
-espBtn.Position = UDim2.new(0, 10, 0, 60)
-espBtn.Text = "ESP: OFF"
-espBtn.BackgroundTransparency = 0.1
-espBtn.Parent = frame
-
-local fecharBtn = Instance.new("TextButton")
-fecharBtn.Size = UDim2.new(1, -20, 0, 30)
-fecharBtn.Position = UDim2.new(0, 10, 0, 110)
-fecharBtn.Text = "Fechar"
-fecharBtn.BackgroundTransparency = 0.1
-fecharBtn.Parent = frame
-
-local abrirBtn = Instance.new("TextButton")
-abrirBtn.Size = UDim2.new(0, 80, 0, 30)
-abrirBtn.Position = UDim2.new(0.01, 0, 0.2, 0)
-abrirBtn.Text = "Abrir Menu"
-abrirBtn.Parent = screenGui
-
-abrirBtn.MouseButton1Click:Connect(function()
-    frame.Visible = true
-    abrirBtn.Visible = false
-end)
-fecharBtn.MouseButton1Click:Connect(function()
-    frame.Visible = false
-    abrirBtn.Visible = true
-end)
+aimbotBtn.Text = aimbotAtivo and "Aimbot: Ativado" or "Aimbot: Desativado"
+aimbotBtn.Size = UDim2.new(0.8, 0, 0, 36)
+aimbotBtn.Position = UDim2.new(0.1, 0, 0.25, 0)
+aimbotBtn.BackgroundColor3 = Color3.fromRGB(50,120,50)
+aimbotBtn.Font = Enum.Font.SourceSans
+aimbotBtn.TextSize = 20
+aimbotBtn.TextColor3 = Color3.fromRGB(255,255,255)
+aimbotBtn.Parent = mainFrame
 
 aimbotBtn.MouseButton1Click:Connect(function()
     aimbotAtivo = not aimbotAtivo
-    aimbotBtn.Text = "Aimbot: " .. (aimbotAtivo and "ON" or "OFF")
+    aimbotBtn.Text = aimbotAtivo and "Aimbot: Ativado" or "Aimbot: Desativado"
+    aimbotBtn.BackgroundColor3 = aimbotAtivo and Color3.fromRGB(50,120,50) or Color3.fromRGB(120,50,50)
 end)
 
-espBtn.MouseButton1Click:Connect(function()
-    espAtivo = not espAtivo
-    espBtn.Text = "ESP: " .. (espAtivo and "ON" or "OFF")
+-- Botão de ativar/desativar team check
+local teamCheckBtn = Instance.new("TextButton")
+teamCheckBtn.Text = teamCheckAtivo and "TeamCheck: Ativado" or "TeamCheck: Desativado"
+teamCheckBtn.Size = UDim2.new(0.8, 0, 0, 36)
+teamCheckBtn.Position = UDim2.new(0.1, 0, 0.5, 0)
+teamCheckBtn.BackgroundColor3 = Color3.fromRGB(50,120,200)
+teamCheckBtn.Font = Enum.Font.SourceSans
+teamCheckBtn.TextSize = 20
+teamCheckBtn.TextColor3 = Color3.fromRGB(255,255,255)
+teamCheckBtn.Parent = mainFrame
+
+teamCheckBtn.MouseButton1Click:Connect(function()
+    teamCheckAtivo = not teamCheckAtivo
+    teamCheckBtn.Text = teamCheckAtivo and "TeamCheck: Ativado" or "TeamCheck: Desativado"
+    teamCheckBtn.BackgroundColor3 = teamCheckAtivo and Color3.fromRGB(50,120,200) or Color3.fromRGB(120,120,120)
+end)
+
+-- Botão de fechar
+local closeBtn = Instance.new("TextButton")
+closeBtn.Text = "Fechar"
+closeBtn.Size = UDim2.new(0.4, 0, 0, 32)
+closeBtn.Position = UDim2.new(0.3, 0, 0.8, 0)
+closeBtn.BackgroundColor3 = Color3.fromRGB(120,50,50)
+closeBtn.Font = Enum.Font.SourceSans
+closeBtn.TextSize = 18
+closeBtn.TextColor3 = Color3.fromRGB(255,255,255)
+closeBtn.Parent = mainFrame
+
+closeBtn.MouseButton1Click:Connect(function()
+    mainFrame.Visible = false
+end)
+
+-- Botão para abrir o menu (fica sempre na tela)
+local openBtn = Instance.new("TextButton")
+openBtn.Text = "Abrir Aimbot"
+openBtn.Size = UDim2.new(0, 120, 0, 32)
+openBtn.Position = UDim2.new(0, 10, 0.9, -40)
+openBtn.BackgroundColor3 = Color3.fromRGB(30,120,200)
+openBtn.Font = Enum.Font.SourceSans
+openBtn.TextSize = 18
+openBtn.TextColor3 = Color3.fromRGB(255,255,255)
+openBtn.Parent = screenGui
+openBtn.Visible = false
+
+openBtn.MouseButton1Click:Connect(function()
+    mainFrame.Visible = true
+    openBtn.Visible = false
+end)
+
+mainFrame:GetPropertyChangedSignal("Visible"):Connect(function()
+    openBtn.Visible = not mainFrame.Visible
+end)
+
+--// (Opcional) Atalho para ativar/desativar o aimbot (tecla "P")
+uis.InputBegan:Connect(function(input, processed)
+    if processed then return end
+    if input.KeyCode == Enum.KeyCode.P then
+        aimbotAtivo = not aimbotAtivo
+        aimbotBtn.Text = aimbotAtivo and "Aimbot: Ativado" or "Aimbot: Desativado"
+        aimbotBtn.BackgroundColor3 = aimbotAtivo and Color3.fromRGB(50,120,50) or Color3.fromRGB(120,50,50)
+        print("Aimbot:", aimbotAtivo and "Ativado" or "Desativado")
+    end
 end)
