@@ -1,141 +1,97 @@
 --[[
-Este script adapta o seu código original para funcionar com uma GUI (ScreenGui) no Roblox.
-Por padrão, o código original é feito para Lua (provavelmente com FFI para Windows), mas o Roblox
-NÃO permite FFI nem manipulação direta do mouse fora do sandbox do jogo. Portanto, este script faz
-uma interface gráfica similar com funcionalidade simulada de "salvar" e "restaurar" posições do mouse
-dentro do ambiente do Roblox (usando o mouse do jogador no UI).
-]]
+  ScreenGui com botão de abrir/fechar e opção Anti Lag
+  Para Roblox Studio: coloque este script em StarterGui > ScreenGui > LocalScript
+--]]
 
--- Services
-local Players = game:GetService("Players")
-local UserInputService = game:GetService("UserInputService")
-local TweenService = game:GetService("TweenService")
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "AntiLagGui"
+ScreenGui.ResetOnSpawn = false
 
-local player = Players.LocalPlayer
-local mouse = player:GetMouse()
+local MainFrame = Instance.new("Frame")
+MainFrame.Name = "MainFrame"
+MainFrame.Size = UDim2.new(0, 240, 0, 120)
+MainFrame.Position = UDim2.new(0.5, -120, 0.5, -60)
+MainFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+MainFrame.Visible = true
+MainFrame.Parent = ScreenGui
 
--- Gui setup
-local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "MousePosGui"
-screenGui.ResetOnSpawn = false
-screenGui.Parent = player:WaitForChild("PlayerGui")
+local OpenCloseButton = Instance.new("TextButton")
+OpenCloseButton.Name = "OpenCloseButton"
+OpenCloseButton.Size = UDim2.new(0, 80, 0, 30)
+OpenCloseButton.Position = UDim2.new(1, -90, 1, -40)
+OpenCloseButton.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
+OpenCloseButton.TextColor3 = Color3.new(1, 1, 1)
+OpenCloseButton.Text = "Fechar"
+OpenCloseButton.Parent = MainFrame
 
-local mainFrame = Instance.new("Frame")
-mainFrame.Size = UDim2.new(0, 300, 0, 220)
-mainFrame.Position = UDim2.new(0.5, -150, 0.5, -110)
-mainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-mainFrame.BackgroundTransparency = 0.1
-mainFrame.AnchorPoint = Vector2.new(0.5, 0.5)
-mainFrame.Parent = screenGui
+local Title = Instance.new("TextLabel")
+Title.Name = "Title"
+Title.Size = UDim2.new(1, 0, 0, 40)
+Title.BackgroundTransparency = 1
+Title.Text = "Painel Anti Lag"
+Title.Font = Enum.Font.SourceSansBold
+Title.TextSize = 28
+Title.TextColor3 = Color3.fromRGB(255, 255, 255)
+Title.Parent = MainFrame
 
-local titleLabel = Instance.new("TextLabel")
-titleLabel.Size = UDim2.new(1, 0, 0, 40)
-titleLabel.Position = UDim2.new(0, 0, 0, 0)
-titleLabel.BackgroundTransparency = 1
-titleLabel.Text = "Mouse Position GUI"
-titleLabel.TextColor3 = Color3.fromRGB(255,255,255)
-titleLabel.Font = Enum.Font.SourceSansBold
-titleLabel.TextSize = 22
-titleLabel.Parent = mainFrame
+local AntiLagButton = Instance.new("TextButton")
+AntiLagButton.Name = "AntiLagButton"
+AntiLagButton.Size = UDim2.new(0, 200, 0, 40)
+AntiLagButton.Position = UDim2.new(0.5, -100, 0, 60)
+AntiLagButton.BackgroundColor3 = Color3.fromRGB(120, 180, 100)
+AntiLagButton.TextColor3 = Color3.new(1, 1, 1)
+AntiLagButton.Text = "Ativar Anti Lag"
+AntiLagButton.Parent = MainFrame
 
-local posLabel = Instance.new("TextLabel")
-posLabel.Size = UDim2.new(1, -20, 0, 30)
-posLabel.Position = UDim2.new(0, 10, 0, 45)
-posLabel.BackgroundTransparency = 1
-posLabel.Text = "Posição salva: Nenhuma"
-posLabel.TextColor3 = Color3.fromRGB(255,255,255)
-posLabel.Font = Enum.Font.SourceSans
-posLabel.TextSize = 18
-posLabel.TextXAlignment = Enum.TextXAlignment.Left
-posLabel.Parent = mainFrame
+-- Botão de abrir (fica fora da tela, aparece só quando o painel for fechado)
+local OpenButton = Instance.new("TextButton")
+OpenButton.Name = "OpenButton"
+OpenButton.Size = UDim2.new(0, 100, 0, 40)
+OpenButton.Position = UDim2.new(0, 10, 0, 10)
+OpenButton.BackgroundColor3 = Color3.fromRGB(60, 130, 60)
+OpenButton.TextColor3 = Color3.new(1, 1, 1)
+OpenButton.Text = "Abrir Painel"
+OpenButton.Visible = false
+OpenButton.Parent = ScreenGui
 
-local saveBtn = Instance.new("TextButton")
-saveBtn.Size = UDim2.new(1, -40, 0, 36)
-saveBtn.Position = UDim2.new(0, 20, 0, 85)
-saveBtn.BackgroundColor3 = Color3.fromRGB(60, 180, 75)
-saveBtn.Text = "Marcar posição do mouse"
-saveBtn.Font = Enum.Font.SourceSansBold
-saveBtn.TextSize = 18
-saveBtn.TextColor3 = Color3.fromRGB(255,255,255)
-saveBtn.Parent = mainFrame
-
-local goBtn = Instance.new("TextButton")
-goBtn.Size = UDim2.new(1, -40, 0, 36)
-goBtn.Position = UDim2.new(0, 20, 0, 130)
-goBtn.BackgroundColor3 = Color3.fromRGB(70, 130, 180)
-goBtn.Text = "Ir para posição marcada (flutuando)"
-goBtn.Font = Enum.Font.SourceSansBold
-goBtn.TextSize = 18
-goBtn.TextColor3 = Color3.fromRGB(255,255,255)
-goBtn.Parent = mainFrame
-
-local quitBtn = Instance.new("TextButton")
-quitBtn.Size = UDim2.new(1, -40, 0, 36)
-quitBtn.Position = UDim2.new(0, 20, 0, 175)
-quitBtn.BackgroundColor3 = Color3.fromRGB(220, 30, 50)
-quitBtn.Text = "Sair"
-quitBtn.Font = Enum.Font.SourceSansBold
-quitBtn.TextSize = 18
-quitBtn.TextColor3 = Color3.fromRGB(255,255,255)
-quitBtn.Parent = mainFrame
-
--- Data
-local savedPos = nil
-
--- Funções GUI
-local function getMouseGuiPos()
-    -- Pega a posição do mouse relativa à tela (0-1)
-    local x = UserInputService:GetMouseLocation().X
-    local y = UserInputService:GetMouseLocation().Y
-    return x, y
-end
-
-local function floatTo(x2, y2, steps, duration)
-    steps = steps or 60
-    duration = duration or 1.0
-    local x1, y1 = getMouseGuiPos()
-    local deltaX = (x2 - x1) / steps
-    local deltaY = (y2 - y1) / steps
-    for i = 1, steps do
-        -- Roblox não deixa você realmente mover o mouse do usuário, então aqui simulamos
-        -- Poderia mover algum objeto visual para mostrar o efeito
-        wait(duration / steps)
-    end
-end
-
--- Botões
-saveBtn.MouseButton1Click:Connect(function()
-    local x, y = getMouseGuiPos()
-    savedPos = {x, y}
-    posLabel.Text = string.format("Posição salva: %d, %d", x, y)
+-- Lógica de abrir/fechar
+OpenCloseButton.MouseButton1Click:Connect(function()
+    MainFrame.Visible = false
+    OpenButton.Visible = true
 end)
 
-goBtn.MouseButton1Click:Connect(function()
-    if savedPos then
-        -- Flutua visualmente um "cursor" até a posição salva
-        local fakeCursor = Instance.new("Frame")
-        fakeCursor.Size = UDim2.new(0, 24, 0, 24)
-        fakeCursor.AnchorPoint = Vector2.new(0.5, 0.5)
-        fakeCursor.BackgroundColor3 = Color3.fromRGB(255,255,0)
-        fakeCursor.BorderSizePixel = 0
-        fakeCursor.Position = UDim2.new(0, UserInputService:GetMouseLocation().X, 0, UserInputService:GetMouseLocation().Y)
-        fakeCursor.Parent = screenGui
+OpenButton.MouseButton1Click:Connect(function()
+    MainFrame.Visible = true
+    OpenButton.Visible = false
+end)
 
-        local tween = TweenService:Create(
-            fakeCursor,
-            TweenInfo.new(1, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
-            {Position = UDim2.new(0, savedPos[1], 0, savedPos[2])}
-        )
-        tween:Play()
-        tween.Completed:Connect(function()
-            wait(0.3)
-            fakeCursor:Destroy()
-        end)
+-- Função anti lag básica (remove efeitos desnecessários)
+local antiLagAtivo = false
+local function aplicarAntiLag()
+    -- Exemplo: remover efeitos de partículas e blur
+    for _, v in ipairs(workspace:GetDescendants()) do
+        if v:IsA("ParticleEmitter") or v:IsA("Trail") or v:IsA("Smoke") or v:IsA("Fire") then
+            v.Enabled = false
+        end
+    end
+    for _, v in ipairs(game.Lighting:GetChildren()) do
+        if v:IsA("BlurEffect") or v:IsA("SunRaysEffect") or v:IsA("BloomEffect") then
+            v.Enabled = false
+        end
+    end
+    -- Pode adicionar mais funções anti lag aqui
+end
+
+AntiLagButton.MouseButton1Click:Connect(function()
+    if not antiLagAtivo then
+        aplicarAntiLag()
+        AntiLagButton.Text = "Anti Lag Ativado!"
+        AntiLagButton.BackgroundColor3 = Color3.fromRGB(60, 180, 60)
+        antiLagAtivo = true
     else
-        posLabel.Text = "Nenhuma posição salva."
+        AntiLagButton.Text = "Anti Lag Já Ativado!"
     end
 end)
 
-quitBtn.MouseButton1Click:Connect(function()
-    screenGui:Destroy()
-end)
+-- Adiciona o GUI ao jogador
+ScreenGui.Parent = game.Players.LocalPlayer:WaitForChild("PlayerGui")
