@@ -1,0 +1,36 @@
+-- Cria a ScreenGui e os botões
+local player = game.Players.LocalPlayer
+local gui = Instance.new("ScreenGui", player.PlayerGui)
+gui.Name = "PosMarkerGui"
+
+local markBtn = Instance.new("TextButton", gui)
+markBtn.Size = UDim2.new(0, 150, 0, 50)
+markBtn.Position = UDim2.new(0, 20, 0, 100)
+markBtn.Text = "Marcar Posição"
+
+local goBtn = Instance.new("TextButton", gui)
+goBtn.Size = UDim2.new(0, 150, 0, 50)
+goBtn.Position = UDim2.new(0, 20, 0, 160)
+goBtn.Text = "Ir para Posição"
+
+-- Variável para armazenar a posição
+local savedPosition = nil
+
+-- Função para marcar a posição
+markBtn.MouseButton1Click:Connect(function()
+    local char = player.Character or player.CharacterAdded:Wait()
+    if char and char:FindFirstChild("HumanoidRootPart") then
+        savedPosition = char.HumanoidRootPart.Position
+        markBtn.Text = "Posição Marcada!"
+        wait(1)
+        markBtn.Text = "Marcar Posição"
+    end
+end)
+
+-- Função para ir até a posição salva
+goBtn.MouseButton1Click:Connect(function()
+    local char = player.Character or player.CharacterAdded:Wait()
+    if savedPosition and char and char:FindFirstChild("HumanoidRootPart") then
+        char.HumanoidRootPart.CFrame = CFrame.new(savedPosition)
+    end
+end)
