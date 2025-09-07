@@ -1,102 +1,112 @@
---[[
-  Teleport ScreenGui for Roblox
-  - Allows the user to input a JobId and teleport to that server.
-  - Supports JobIds in the format: 8qRG2DNRgkRGGx2K5fDWU4FZGjKsMxELBNQKgOwCUtHouVjXg4QoTOvCSEIJmDwDaOGIrkSKDplUBbtE7HEHDE1TCEuLHbuQ
-  - Place this as a LocalScript under StarterGui.
---]]
-
-local TeleportService = game:GetService("TeleportService")
-local Players = game:GetService("Players")
-local PlaceId = game.PlaceId
-
--- UI creation
+-- Criação dos elementos da interface
+local player = game.Players.LocalPlayer
 local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "TeleportJobIdGui"
+screenGui.Name = "MeuScreenGui"
 screenGui.ResetOnSpawn = false
+screenGui.Parent = player:WaitForChild("PlayerGui")
 
+-- Frame principal
 local frame = Instance.new("Frame")
-frame.Size = UDim2.new(0, 400, 0, 150)
-frame.Position = UDim2.new(0.5, -200, 0.5, -75)
-frame.BackgroundColor3 = Color3.fromRGB(30,30,30)
-frame.BorderSizePixel = 0
+frame.Size = UDim2.new(0, 250, 0, 110)
+frame.Position = UDim2.new(0.5, -125, 0.5, -55)
+frame.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+frame.Active = true
+frame.Draggable = true
 frame.Parent = screenGui
 
-local title = Instance.new("TextLabel")
-title.Size = UDim2.new(1, 0, 0, 30)
-title.Position = UDim2.new(0, 0, 0, 0)
-title.BackgroundTransparency = 1
-title.Text = "Teleport por Job ID"
-title.Font = Enum.Font.SourceSansBold
-title.TextSize = 26
-title.TextColor3 = Color3.fromRGB(255, 255, 255)
-title.Parent = frame
+-- Botão de fechar
+local closeButton = Instance.new("TextButton")
+closeButton.Size = UDim2.new(0, 30, 0, 30)
+closeButton.Position = UDim2.new(1, -35, 0, 5)
+closeButton.Text = "X"
+closeButton.Parent = frame
+closeButton.BackgroundColor3 = Color3.fromRGB(200, 70, 70)
+closeButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+closeButton.Font = Enum.Font.SourceSansBold
+closeButton.TextSize = 20
 
-local jobIdBox = Instance.new("TextBox")
-jobIdBox.Size = UDim2.new(1, -20, 0, 36)
-jobIdBox.Position = UDim2.new(0, 10, 0, 40)
-jobIdBox.PlaceholderText = "Cole o Job ID aqui"
-jobIdBox.Font = Enum.Font.SourceSans
-jobIdBox.Text = ""
-jobIdBox.TextSize = 20
-jobIdBox.TextColor3 = Color3.fromRGB(0,0,0)
-jobIdBox.BackgroundColor3 = Color3.fromRGB(220,220,220)
-jobIdBox.ClearTextOnFocus = false
-jobIdBox.Parent = frame
+-- Botão de abrir
+local openButton = Instance.new("TextButton")
+openButton.Size = UDim2.new(0, 30, 0, 30)
+openButton.Position = UDim2.new(0, 10, 0, 10)
+openButton.Text = ">"
+openButton.Visible = false
+openButton.Parent = screenGui
+openButton.BackgroundColor3 = Color3.fromRGB(70, 200, 70)
+openButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+openButton.Font = Enum.Font.SourceSansBold
+openButton.TextSize = 20
 
-local teleportButton = Instance.new("TextButton")
-teleportButton.Size = UDim2.new(0.5, -15, 0, 36)
-teleportButton.Position = UDim2.new(0, 10, 1, -46)
-teleportButton.Text = "Teleportar"
-teleportButton.Font = Enum.Font.SourceSansBold
-teleportButton.TextSize = 22
-teleportButton.TextColor3 = Color3.fromRGB(255,255,255)
-teleportButton.BackgroundColor3 = Color3.fromRGB(60,160,60)
-teleportButton.Parent = frame
+-- Botão toggle de ativar/desativar
+local toggleButton = Instance.new("TextButton")
+toggleButton.Size = UDim2.new(0, 200, 0, 40)
+toggleButton.Position = UDim2.new(0, 25, 0, 60)
+toggleButton.Text = "Desativado"
+toggleButton.Parent = frame
+toggleButton.BackgroundColor3 = Color3.fromRGB(100, 100, 200)
+toggleButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+toggleButton.Font = Enum.Font.SourceSansBold
+toggleButton.TextSize = 20
 
-local cancelButton = Instance.new("TextButton")
-cancelButton.Size = UDim2.new(0.5, -15, 0, 36)
-cancelButton.Position = UDim2.new(0.5, 5, 1, -46)
-cancelButton.Text = "Cancelar"
-cancelButton.Font = Enum.Font.SourceSansBold
-cancelButton.TextSize = 22
-cancelButton.TextColor3 = Color3.fromRGB(255,255,255)
-cancelButton.BackgroundColor3 = Color3.fromRGB(180,60,60)
-cancelButton.Parent = frame
+-- Plataforma flutuante
+local platform = Instance.new("Part")
+platform.Size = Vector3.new(6, 1, 6)
+platform.Anchored = true
+platform.Color = Color3.fromRGB(100, 255, 100)
+platform.Transparency = 0.2
+platform.Name = "PlataformaFlutuante"
+platform.CanCollide = true
+platform.Parent = workspace
+platform.Visible = false
 
-local statusLabel = Instance.new("TextLabel")
-statusLabel.Size = UDim2.new(1, -20, 0, 20)
-statusLabel.Position = UDim2.new(0, 10, 1, -20)
-statusLabel.BackgroundTransparency = 1
-statusLabel.Text = ""
-statusLabel.Font = Enum.Font.SourceSans
-statusLabel.TextSize = 18
-statusLabel.TextColor3 = Color3.fromRGB(255,255,0)
-statusLabel.Parent = frame
+-- Função para atualizar posição da plataforma
+local function atualizarPlataforma()
+	local character = player.Character
+	if character and character:FindFirstChild("HumanoidRootPart") then
+		local hrp = character.HumanoidRootPart
+		platform.Position = hrp.Position - Vector3.new(0, 3.5, 0)
+	end
+end
 
--- Show GUI
-screenGui.Parent = Players.LocalPlayer.PlayerGui
+-- Estado do toggle
+local ativado = false
 
--- Button logic
-teleportButton.MouseButton1Click:Connect(function()
-    local jobId = jobIdBox.Text and jobIdBox.Text:match("^%s*(.-)%s*$") or ""
-    if #jobId < 32 then
-        statusLabel.Text = "JobId inválido!"
-        statusLabel.TextColor3 = Color3.fromRGB(255,0,0)
-        return
-    end
+-- Lógica do botão toggle
+toggleButton.MouseButton1Click:Connect(function()
+	ativado = not ativado
+	if ativado then
+		toggleButton.Text = "Ativado"
+		toggleButton.BackgroundColor3 = Color3.fromRGB(70, 200, 70)
+		print("Ativado")
 
-    statusLabel.Text = "Teleportando..."
-    statusLabel.TextColor3 = Color3.fromRGB(255,255,0)
-    -- Teleport
-    local success, err = pcall(function()
-        TeleportService:TeleportToPlaceInstance(PlaceId, jobId, Players.LocalPlayer)
-    end)
-    if not success then
-        statusLabel.Text = "Falha ao teleportar: " .. tostring(err)
-        statusLabel.TextColor3 = Color3.fromRGB(255,0,0)
-    end
+		-- Ativar plataforma
+		atualizarPlataforma()
+		platform.Visible = true
+	else
+		toggleButton.Text = "Desativado"
+		toggleButton.BackgroundColor3 = Color3.fromRGB(100, 100, 200)
+		print("Desativado")
+
+		-- Desativar plataforma
+		platform.Visible = false
+	end
 end)
 
-cancelButton.MouseButton1Click:Connect(function()
-    screenGui:Destroy()
+-- Lógica para manter a plataforma atualizada
+game:GetService("RunService").Heartbeat:Connect(function()
+	if ativado and platform.Visible then
+		atualizarPlataforma()
+	end
+end)
+
+-- Botão de fechar a interface
+closeButton.MouseButton1Click:Connect(function()
+	frame.Visible = false
+	openButton.Visible = true
+end)
+
+-- Botão de abrir a interface
+openButton.MouseButton1Click:Connect(function()
+	frame.Visible = true
+	openButton.Visible = false
 end)
