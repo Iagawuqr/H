@@ -34,39 +34,33 @@ goBtn.MouseButton1Click:Connect(function()
         local humanoid = char.Humanoid
         local startPos = hrp.Position
         local endPos = savedCFrame.Position
-        local originalOrientation = hrp.CFrame - hrp.Position -- matriz de rotação original
+        local originalOrientation = hrp.CFrame - hrp.Position
         local distance = (startPos - endPos).magnitude
         local duration = math.clamp(distance / 10, 0.5, 5)
 
         local elapsed = 0
         local runService = game:GetService("RunService")
 
-        hrp.Anchored = true
-        humanoid.PlatformStand = true
+        -- Evite anchoring e PlatformStand se possível
+        -- hrp.Anchored = true  
+        -- humanoid.PlatformStand = true
 
-        for _, part in ipairs(char:GetChildren()) do
-            if part:IsA("BasePart") then
-                part.CanCollide = false
-            end
-        end
+        -- Desabilite colisão apenas no HumanoidRootPart (opcional)
+        local originalCanCollide = hrp.CanCollide
+        hrp.CanCollide = false
 
         local conn
         conn = runService.RenderStepped:Connect(function(dt)
             elapsed = elapsed + dt
             local alpha = math.clamp(elapsed / duration, 0, 1)
-            -- Interpola apenas a posição, mantendo a orientação original
             local newPos = startPos:Lerp(endPos, alpha)
             hrp.CFrame = originalOrientation + newPos
             if alpha >= 1 then
                 conn:Disconnect()
                 hrp.CFrame = originalOrientation + endPos
-                hrp.Anchored = false
-                humanoid.PlatformStand = false
-                for _, part in ipairs(char:GetChildren()) do
-                    if part:IsA("BasePart") then
-                        part.CanCollide = true
-                    end
-                end
+                -- hrp.Anchored = false
+                -- humanoid.PlatformStand = false
+                hrp.CanCollide = originalCanCollide
                 isFlying = false
             end
         end)
