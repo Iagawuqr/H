@@ -5,34 +5,40 @@ local espAtivo = false
 --// Função de Team Check
 local function isEnemy(player)
     local localPlayer = game.Players.LocalPlayer
+    if not player.Team or not localPlayer.Team then return false end
     return player.Team ~= localPlayer.Team
 end
 
 --// Função de ESP
 local function criarESP(player)
-    if player.Character and player.Character:FindFirstChild("Head") then
-        if not player.Character.Head:FindFirstChild("EspBox") then
-            local box = Instance.new("BillboardGui", player.Character.Head)
-            box.Name = "EspBox"
-            box.Size = UDim2.new(4,0,4,0)
-            box.Adornee = player.Character.Head
-            box.AlwaysOnTop = true
+    if not player.Character then return end
+    local head = player.Character:FindFirstChild("Head")
+    if not head then return end
 
-            local frame = Instance.new("Frame", box)
-            frame.Size = UDim2.new(1,0,1,0)
-            frame.BackgroundColor3 = Color3.new(1,0,0)
-            frame.BackgroundTransparency = 0.5
-            frame.BorderSizePixel = 0
-        end
+    if not head:FindFirstChild("EspBox") then
+        local box = Instance.new("BillboardGui")
+        box.Name = "EspBox"
+        box.Size = UDim2.new(4,0,4,0)
+        box.Adornee = head
+        box.AlwaysOnTop = true
+        box.Parent = head
+
+        local frame = Instance.new("Frame")
+        frame.Size = UDim2.new(1,0,1,0)
+        frame.BackgroundColor3 = Color3.new(1,0,0)
+        frame.BackgroundTransparency = 0.5
+        frame.BorderSizePixel = 0
+        frame.Parent = box
     end
 end
 
 local function removerESP(player)
-    if player.Character and player.Character:FindFirstChild("Head") then
-        local box = player.Character.Head:FindFirstChild("EspBox")
-        if box then
-            box:Destroy()
-        end
+    if not player.Character then return end
+    local head = player.Character:FindFirstChild("Head")
+    if not head then return end
+    local box = head:FindFirstChild("EspBox")
+    if box then
+        box:Destroy()
     end
 end
 
@@ -77,7 +83,8 @@ local function getClosestEnemy()
     return closestPlayer
 end
 
-uis.InputBegan:Connect(function(input)
+uis.InputBegan:Connect(function(input, processed)
+    if processed then return end
     if input.UserInputType == Enum.UserInputType.MouseButton2 and aimbotAtivo then -- Botão direito do mouse
         local target = getClosestEnemy()
         if target and target.Character and target.Character:FindFirstChild("Head") then
@@ -88,38 +95,44 @@ end)
 
 --// ScreenGui
 local player = game.Players.LocalPlayer
-local screenGui = Instance.new("ScreenGui", player.PlayerGui)
+local screenGui = Instance.new("ScreenGui")
 screenGui.Name = "AimbotESP_GUI"
+screenGui.Parent = player:WaitForChild("PlayerGui")
 
-local frame = Instance.new("Frame", screenGui)
+local frame = Instance.new("Frame")
 frame.Size = UDim2.new(0, 200, 0, 150)
 frame.Position = UDim2.new(0.05, 0, 0.25, 0)
 frame.BackgroundTransparency = 0.2
 frame.BackgroundColor3 = Color3.fromRGB(30,30,30)
 frame.Visible = false
+frame.Parent = screenGui
 
-local aimbotBtn = Instance.new("TextButton", frame)
+local aimbotBtn = Instance.new("TextButton")
 aimbotBtn.Size = UDim2.new(1, -20, 0, 40)
 aimbotBtn.Position = UDim2.new(0, 10, 0, 10)
 aimbotBtn.Text = "Aimbot: OFF"
 aimbotBtn.BackgroundTransparency = 0.1
+aimbotBtn.Parent = frame
 
-local espBtn = Instance.new("TextButton", frame)
+local espBtn = Instance.new("TextButton")
 espBtn.Size = UDim2.new(1, -20, 0, 40)
 espBtn.Position = UDim2.new(0, 10, 0, 60)
 espBtn.Text = "ESP: OFF"
 espBtn.BackgroundTransparency = 0.1
+espBtn.Parent = frame
 
-local fecharBtn = Instance.new("TextButton", frame)
+local fecharBtn = Instance.new("TextButton")
 fecharBtn.Size = UDim2.new(1, -20, 0, 30)
 fecharBtn.Position = UDim2.new(0, 10, 0, 110)
 fecharBtn.Text = "Fechar"
 fecharBtn.BackgroundTransparency = 0.1
+fecharBtn.Parent = frame
 
-local abrirBtn = Instance.new("TextButton", screenGui)
+local abrirBtn = Instance.new("TextButton")
 abrirBtn.Size = UDim2.new(0, 80, 0, 30)
 abrirBtn.Position = UDim2.new(0.01, 0, 0.2, 0)
 abrirBtn.Text = "Abrir Menu"
+abrirBtn.Parent = screenGui
 
 abrirBtn.MouseButton1Click:Connect(function()
     frame.Visible = true
@@ -133,5 +146,9 @@ end)
 aimbotBtn.MouseButton1Click:Connect(function()
     aimbotAtivo = not aimbotAtivo
     aimbotBtn.Text = "Aimbot: " .. (aimbotAtivo and "ON" or "OFF")
-end
-
+end)
+
+espBtn.MouseButton1Click:Connect(function()
+    espAtivo = not espAtivo
+    espBtn.Text = "ESP: " .. (espAtivo and "ON" or "OFF")
+end)
