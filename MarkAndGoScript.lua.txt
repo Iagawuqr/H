@@ -27,10 +27,24 @@ markBtn.MouseButton1Click:Connect(function()
     end
 end)
 
--- Função para ir até a posição salva
+-- Função para ir até a posição salva flutuando devagar
 goBtn.MouseButton1Click:Connect(function()
     local char = player.Character or player.CharacterAdded:Wait()
     if savedPosition and char and char:FindFirstChild("HumanoidRootPart") then
-        char.HumanoidRootPart.CFrame = CFrame.new(savedPosition)
+        local hrp = char.HumanoidRootPart
+
+        -- TweenService para mover suavemente
+        local TweenService = game:GetService("TweenService")
+        local distance = (hrp.Position - savedPosition).magnitude
+        local duration = math.clamp(distance / 10, 0.5, 5) -- tempo proporcional à distância
+
+        local tweenInfo = TweenInfo.new(
+            duration,
+            Enum.EasingStyle.Linear,
+            Enum.EasingDirection.Out
+        )
+
+        local tween = TweenService:Create(hrp, tweenInfo, {CFrame = CFrame.new(savedPosition)})
+        tween:Play()
     end
 end)
