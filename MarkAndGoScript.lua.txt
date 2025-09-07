@@ -14,13 +14,13 @@ goBtn.Position = UDim2.new(0, 20, 0, 160)
 goBtn.Text = "Ir para Posição"
 
 -- Variável para armazenar a posição
-local savedPosition = nil
+local savedCFrame = nil
 
 -- Função para marcar a posição
 markBtn.MouseButton1Click:Connect(function()
     local char = player.Character or player.CharacterAdded:Wait()
     if char and char:FindFirstChild("HumanoidRootPart") then
-        savedPosition = char.HumanoidRootPart.Position
+        savedCFrame = char.HumanoidRootPart.CFrame
         markBtn.Text = "Posição Marcada!"
         wait(1)
         markBtn.Text = "Marcar Posição"
@@ -30,12 +30,11 @@ end)
 -- Função para ir até a posição salva flutuando devagar
 goBtn.MouseButton1Click:Connect(function()
     local char = player.Character or player.CharacterAdded:Wait()
-    if savedPosition and char and char:FindFirstChild("HumanoidRootPart") then
+    if savedCFrame and char and char:FindFirstChild("HumanoidRootPart") then
         local hrp = char.HumanoidRootPart
 
-        -- TweenService para mover suavemente
         local TweenService = game:GetService("TweenService")
-        local distance = (hrp.Position - savedPosition).magnitude
+        local distance = (hrp.Position - savedCFrame.Position).magnitude
         local duration = math.clamp(distance / 10, 0.5, 5) -- tempo proporcional à distância
 
         local tweenInfo = TweenInfo.new(
@@ -44,7 +43,8 @@ goBtn.MouseButton1Click:Connect(function()
             Enum.EasingDirection.Out
         )
 
-        local tween = TweenService:Create(hrp, tweenInfo, {CFrame = CFrame.new(savedPosition)})
+        -- Tween para o CFrame inteiro, assim ele "flutua" (não só anda no chão)
+        local tween = TweenService:Create(hrp, tweenInfo, {CFrame = savedCFrame})
         tween:Play()
     end
 end)
