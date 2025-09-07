@@ -1,4 +1,3 @@
--- Cria a ScreenGui e os botões
 local player = game.Players.LocalPlayer
 local gui = Instance.new("ScreenGui", player.PlayerGui)
 gui.Name = "PosMarkerGui"
@@ -13,10 +12,9 @@ goBtn.Size = UDim2.new(0, 150, 0, 50)
 goBtn.Position = UDim2.new(0, 20, 0, 160)
 goBtn.Text = "Ir para Posição"
 
--- Variável para armazenar a posição
 local savedCFrame = nil
+local isFlying = false
 
--- Função para marcar a posição
 markBtn.MouseButton1Click:Connect(function()
     local char = player.Character or player.CharacterAdded:Wait()
     if char and char:FindFirstChild("HumanoidRootPart") then
@@ -27,24 +25,34 @@ markBtn.MouseButton1Click:Connect(function()
     end
 end)
 
--- Função para ir até a posição salva flutuando devagar
 goBtn.MouseButton1Click:Connect(function()
+    if isFlying then return end
     local char = player.Character or player.CharacterAdded:Wait()
     if savedCFrame and char and char:FindFirstChild("HumanoidRootPart") then
+        isFlying = true
         local hrp = char.HumanoidRootPart
+        local startCFrame = hrp.CFrame
+        local endCFrame = savedCFrame
+        local distance = (startCFrame.Position - endCFrame.Position).magnitude
+        local duration = math.clamp(distance / 10, 0.5, 5)
 
-        local TweenService = game:GetService("TweenService")
-        local distance = (hrp.Position - savedCFrame.Position).magnitude
-        local duration = math.clamp(distance / 10, 0.5, 5) -- tempo proporcional à distância
+        local elapsed = 0
+        local runService = game:GetService("RunService")
+        -- Desabilita física para o movimento ser "pelo ar"
+        hrp.Anchored = true
 
-        local tweenInfo = TweenInfo.new(
-            duration,
-            Enum.EasingStyle.Linear,
-            Enum.EasingDirection.Out
-        )
-
-        -- Tween para o CFrame inteiro, assim ele "flutua" (não só anda no chão)
-        local tween = TweenService:Create(hrp, tweenInfo, {CFrame = savedCFrame})
-        tween:Play()
+        local conn
+        conn = runService.RenderStepped:Connect(function(dt)
+            elapsed = elapsed + dt
+            local alpha = math.clamp(elapsed / duration, 0, 1)
+            local newCFrame = startCFrame:Lerp(endCFrame, alpha)
+            hrp.CFrame = newCFrame
+            if alpha >= 1 then
+                conn:Disconnect()
+                hrp.CFrame = endCFrame
+                hrp.Anchored = false
+                isFlying = false
+            end
+        end)
     end
 end)
