@@ -1,97 +1,38 @@
---[[
-  ScreenGui com botão de abrir/fechar e opção Anti Lag
-  Para Roblox Studio: coloque este script em StarterGui > ScreenGui > LocalScript
---]]
+-local espEnabled = false
 
-local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "AntiLagGui"
-ScreenGui.ResetOnSpawn = false
-
-local MainFrame = Instance.new("Frame")
-MainFrame.Name = "MainFrame"
-MainFrame.Size = UDim2.new(0, 240, 0, 120)
-MainFrame.Position = UDim2.new(0.5, -120, 0.5, -60)
-MainFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-MainFrame.Visible = true
-MainFrame.Parent = ScreenGui
-
-local OpenCloseButton = Instance.new("TextButton")
-OpenCloseButton.Name = "OpenCloseButton"
-OpenCloseButton.Size = UDim2.new(0, 80, 0, 30)
-OpenCloseButton.Position = UDim2.new(1, -90, 1, -40)
-OpenCloseButton.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
-OpenCloseButton.TextColor3 = Color3.new(1, 1, 1)
-OpenCloseButton.Text = "Fechar"
-OpenCloseButton.Parent = MainFrame
-
-local Title = Instance.new("TextLabel")
-Title.Name = "Title"
-Title.Size = UDim2.new(1, 0, 0, 40)
-Title.BackgroundTransparency = 1
-Title.Text = "Painel Anti Lag"
-Title.Font = Enum.Font.SourceSansBold
-Title.TextSize = 28
-Title.TextColor3 = Color3.fromRGB(255, 255, 255)
-Title.Parent = MainFrame
-
-local AntiLagButton = Instance.new("TextButton")
-AntiLagButton.Name = "AntiLagButton"
-AntiLagButton.Size = UDim2.new(0, 200, 0, 40)
-AntiLagButton.Position = UDim2.new(0.5, -100, 0, 60)
-AntiLagButton.BackgroundColor3 = Color3.fromRGB(120, 180, 100)
-AntiLagButton.TextColor3 = Color3.new(1, 1, 1)
-AntiLagButton.Text = "Ativar Anti Lag"
-AntiLagButton.Parent = MainFrame
-
--- Botão de abrir (fica fora da tela, aparece só quando o painel for fechado)
-local OpenButton = Instance.new("TextButton")
-OpenButton.Name = "OpenButton"
-OpenButton.Size = UDim2.new(0, 100, 0, 40)
-OpenButton.Position = UDim2.new(0, 10, 0, 10)
-OpenButton.BackgroundColor3 = Color3.fromRGB(60, 130, 60)
-OpenButton.TextColor3 = Color3.new(1, 1, 1)
-OpenButton.Text = "Abrir Painel"
-OpenButton.Visible = false
-OpenButton.Parent = ScreenGui
-
--- Lógica de abrir/fechar
-OpenCloseButton.MouseButton1Click:Connect(function()
-    MainFrame.Visible = false
-    OpenButton.Visible = true
-end)
-
-OpenButton.MouseButton1Click:Connect(function()
-    MainFrame.Visible = true
-    OpenButton.Visible = false
-end)
-
--- Função anti lag básica (remove efeitos desnecessários)
-local antiLagAtivo = false
-local function aplicarAntiLag()
-    -- Exemplo: remover efeitos de partículas e blur
-    for _, v in ipairs(workspace:GetDescendants()) do
-        if v:IsA("ParticleEmitter") or v:IsA("Trail") or v:IsA("Smoke") or v:IsA("Fire") then
-            v.Enabled = false
-        end
-    end
-    for _, v in ipairs(game.Lighting:GetChildren()) do
-        if v:IsA("BlurEffect") or v:IsA("SunRaysEffect") or v:IsA("BloomEffect") then
-            v.Enabled = false
-        end
-    end
-    -- Pode adicionar mais funções anti lag aqui
+function love.load()
+    love.window.setTitle("Exemplo de GUI com ESP")
+    font = love.graphics.newFont(18)
+    love.graphics.setFont(font)
 end
 
-AntiLagButton.MouseButton1Click:Connect(function()
-    if not antiLagAtivo then
-        aplicarAntiLag()
-        AntiLagButton.Text = "Anti Lag Ativado!"
-        AntiLagButton.BackgroundColor3 = Color3.fromRGB(60, 180, 60)
-        antiLagAtivo = true
-    else
-        AntiLagButton.Text = "Anti Lag Já Ativado!"
-    end
-end)
+function love.draw()
+    -- Desenha a caixa da GUI
+    love.graphics.setColor(0.2, 0.2, 0.2, 0.8)
+    love.graphics.rectangle("fill", 50, 50, 200, 100)
+    love.graphics.setColor(1, 1, 1, 1)
+    love.graphics.rectangle("line", 50, 50, 200, 100)
+    love.graphics.print("ESP: " .. (espEnabled and "Ativado" or "Desativado"), 60, 80)
 
--- Adiciona o GUI ao jogador
-ScreenGui.Parent = game.Players.LocalPlayer:WaitForChild("PlayerGui")
+    -- Botão de toggle
+    love.graphics.setColor(0.5, 0.5, 1, 1)
+    love.graphics.rectangle("fill", 60, 120, 180, 20)
+    love.graphics.setColor(1, 1, 1, 1)
+    love.graphics.print("Alternar ESP", 110, 123)
+
+    -- Exemplo de ESP desenhando um retângulo em volta de um "player"
+    if espEnabled then
+        love.graphics.setColor(1, 0, 0, 1)
+        love.graphics.rectangle("line", 300, 200, 50, 80)
+        love.graphics.print("Jogador", 310, 290)
+    end
+end
+
+function love.mousepressed(x, y, button, istouch, presses)
+    if button == 1 then
+        -- Verifica se clicou no botão de toggle
+        if x >= 60 and x <= 240 and y >= 120 and y <= 140 then
+            espEnabled = not espEnabled
+        end
+    end
+end
