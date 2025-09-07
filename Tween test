@@ -6,6 +6,7 @@ Tested for Roblox Lua (LocalScript). Place this in StarterPlayerScripts for best
 -- Services
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
+local CoreGui = game:GetService("CoreGui")
 
 -- Variables
 local localPlayer = Players.LocalPlayer
@@ -41,9 +42,8 @@ local function createESPForCharacter(character)
     frame.Parent = bb
 
     -- Name ESP
-    local nameLabel
     if nameEspEnabled then
-        nameLabel = Instance.new("TextLabel")
+        local nameLabel = Instance.new("TextLabel")
         nameLabel.Size = UDim2.new(1,0,0,24)
         nameLabel.Position = UDim2.new(0,0,0,-24)
         nameLabel.BackgroundTransparency = 1
@@ -55,65 +55,8 @@ local function createESPForCharacter(character)
         nameLabel.Parent = bb
     end
 
-    bb.Parent = game.CoreGui
+    bb.Parent = CoreGui
     return bb
 end
 
-local function removeAllESP()
-    for _, bb in ipairs(espDrawings) do
-        if bb and bb.Parent then
-            bb:Destroy()
-        end
-    end
-    espDrawings = {}
-end
-
-local function updateESP()
-    removeAllESP()
-    if not espEnabled then return end
-
-    for _, player in ipairs(Players:GetPlayers()) do
-        if player ~= localPlayer and player.Character and player.Character:FindFirstChild("Head") then
-            local bb = createESPForCharacter(player.Character)
-            if bb then
-                table.insert(espDrawings, bb)
-            end
-        end
-    end
-end
-
--- UI Creation
-local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "ESPControlGui"
-screenGui.ResetOnSpawn = false
-screenGui.Parent = game.CoreGui
-
-local mainFrame = Instance.new("Frame")
-mainFrame.Position = UDim2.new(0.75,0,0.3,0)
-mainFrame.Size = UDim2.new(0,200,0,160)
-mainFrame.BackgroundColor3 = Color3.new(0.15,0.15,0.15)
-mainFrame.BorderSizePixel = 0
-mainFrame.Visible = guiOpen
-mainFrame.Parent = screenGui
-
-local openCloseBtn = Instance.new("TextButton")
-openCloseBtn.Size = UDim2.new(0,200,0,30)
-openCloseBtn.Position = UDim2.new(0,0,0,0)
-openCloseBtn.Text = "Fechar Painel"
-openCloseBtn.BackgroundColor3 = Color3.new(0.2,0.2,0.2)
-openCloseBtn.TextColor3 = Color3.new(1,1,1)
-openCloseBtn.Parent = mainFrame
-
-local toggleESPBtn = Instance.new("TextButton")
-toggleESPBtn.Size = UDim2.new(0,180,0,40)
-toggleESPBtn.Position = UDim2.new(0,10,0,40)
-toggleESPBtn.Text = "Ativar ESP"
-toggleESPBtn.BackgroundColor3 = Color3.new(0.8,0,0)
-toggleESPBtn.TextColor3 = Color3.new(1,1,1)
-toggleESPBtn.Parent = mainFrame
-
-local toggleNameESPBtn = Instance.new("TextButton")
-toggleNameESPBtn.Size = UDim2.new(0,180,0,40)
-toggleNameESPBtn.Position = UDim2.new(0,10,0,90)
-toggleNameESPBtn.Text = "Ativar Nome ESP"
-toggleNameESPBtn.BackgroundColor3
+local function removeAllESP
