@@ -1,5 +1,5 @@
 --[[
-ESP Script with Red Boxes, Toggle Button, and Open/Close GUI
+ESP Script with Red Boxes, Name ESP, Toggle Button, and Open/Close GUI
 Tested for Roblox Lua (LocalScript). Place this in StarterPlayerScripts for best results.
 --]]
 
@@ -10,6 +10,7 @@ local RunService = game:GetService("RunService")
 -- Variables
 local localPlayer = Players.LocalPlayer
 local espEnabled = false
+local nameEspEnabled = false
 local guiOpen = true
 local espDrawings = {}
 
@@ -38,8 +39,23 @@ local function createESPForCharacter(character)
     redOutline.Parent = frame
 
     frame.Parent = bb
-    bb.Parent = game.CoreGui
 
+    -- Name ESP
+    local nameLabel
+    if nameEspEnabled then
+        nameLabel = Instance.new("TextLabel")
+        nameLabel.Size = UDim2.new(1,0,0,24)
+        nameLabel.Position = UDim2.new(0,0,0,-24)
+        nameLabel.BackgroundTransparency = 1
+        nameLabel.TextColor3 = Color3.new(1, 0, 0)
+        nameLabel.TextStrokeTransparency = 0.5
+        nameLabel.TextScaled = true
+        nameLabel.Text = character.Name
+        nameLabel.Font = Enum.Font.GothamBold
+        nameLabel.Parent = bb
+    end
+
+    bb.Parent = game.CoreGui
     return bb
 end
 
@@ -74,7 +90,7 @@ screenGui.Parent = game.CoreGui
 
 local mainFrame = Instance.new("Frame")
 mainFrame.Position = UDim2.new(0.75,0,0.3,0)
-mainFrame.Size = UDim2.new(0,200,0,120)
+mainFrame.Size = UDim2.new(0,200,0,160)
 mainFrame.BackgroundColor3 = Color3.new(0.15,0.15,0.15)
 mainFrame.BorderSizePixel = 0
 mainFrame.Visible = guiOpen
@@ -96,59 +112,8 @@ toggleESPBtn.BackgroundColor3 = Color3.new(0.8,0,0)
 toggleESPBtn.TextColor3 = Color3.new(1,1,1)
 toggleESPBtn.Parent = mainFrame
 
-local openBtn = Instance.new("TextButton")
-openBtn.Size = UDim2.new(0,80,0,30)
-openBtn.Position = UDim2.new(0.75,0,0.25,0)
-openBtn.Text = "Abrir"
-openBtn.BackgroundColor3 = Color3.new(0.2,0.2,0.2)
-openBtn.TextColor3 = Color3.new(1,1,1)
-openBtn.Visible = not guiOpen
-openBtn.Parent = screenGui
-
--- Button Functionality
-openCloseBtn.MouseButton1Click:Connect(function()
-    guiOpen = false
-    mainFrame.Visible = false
-    openBtn.Visible = true
-end)
-
-openBtn.MouseButton1Click:Connect(function()
-    guiOpen = true
-    mainFrame.Visible = true
-    openBtn.Visible = false
-end)
-
-toggleESPBtn.MouseButton1Click:Connect(function()
-    espEnabled = not espEnabled
-    toggleESPBtn.Text = espEnabled and "Desativar ESP" or "Ativar ESP"
-    toggleESPBtn.BackgroundColor3 = espEnabled and Color3.new(0,0.8,0) or Color3.new(0.8,0,0)
-    updateESP()
-end)
-
--- Auto-update ESP on character updates
-Players.PlayerAdded:Connect(function(player)
-    player.CharacterAdded:Connect(function()
-        if espEnabled then
-            wait(1)
-            updateESP()
-        end
-    end)
-end)
-
-Players.PlayerRemoving:Connect(function()
-    updateESP()
-end)
-
--- Reapply ESP when toggled
-RunService.RenderStepped:Connect(function()
-    if espEnabled then
-        updateESP()
-    end
-end)
-
--- Cleanup on script removal
-screenGui.AncestryChanged:Connect(function(_, parent)
-    if not parent then
-        removeAllESP()
-    end
-end)
+local toggleNameESPBtn = Instance.new("TextButton")
+toggleNameESPBtn.Size = UDim2.new(0,180,0,40)
+toggleNameESPBtn.Position = UDim2.new(0,10,0,90)
+toggleNameESPBtn.Text = "Ativar Nome ESP"
+toggleNameESPBtn.BackgroundColor3
