@@ -32,19 +32,18 @@ goBtn.MouseButton1Click:Connect(function()
         isFlying = true
         local hrp = char.HumanoidRootPart
         local humanoid = char.Humanoid
-        local startCFrame = hrp.CFrame
-        local endCFrame = savedCFrame
-        local distance = (startCFrame.Position - endCFrame.Position).magnitude
+        local startPos = hrp.Position
+        local endPos = savedCFrame.Position
+        local originalOrientation = hrp.CFrame - hrp.Position -- matriz de rotação original
+        local distance = (startPos - endPos).magnitude
         local duration = math.clamp(distance / 10, 0.5, 5)
 
         local elapsed = 0
         local runService = game:GetService("RunService")
 
-        -- Protege o personagem de morrer durante o voo
         hrp.Anchored = true
-        humanoid.PlatformStand = true  -- impede animações/quedas/desmaios
+        humanoid.PlatformStand = true
 
-        -- Opcional: desativa colisão do HRP (ou de todos os parts do personagem)
         for _, part in ipairs(char:GetChildren()) do
             if part:IsA("BasePart") then
                 part.CanCollide = false
@@ -55,15 +54,14 @@ goBtn.MouseButton1Click:Connect(function()
         conn = runService.RenderStepped:Connect(function(dt)
             elapsed = elapsed + dt
             local alpha = math.clamp(elapsed / duration, 0, 1)
-            local newCFrame = startCFrame:Lerp(endCFrame, alpha)
-            hrp.CFrame = newCFrame
+            -- Interpola apenas a posição, mantendo a orientação original
+            local newPos = startPos:Lerp(endPos, alpha)
+            hrp.CFrame = originalOrientation + newPos
             if alpha >= 1 then
                 conn:Disconnect()
-                hrp.CFrame = endCFrame
+                hrp.CFrame = originalOrientation + endPos
                 hrp.Anchored = false
-                humanoid.PlatformStand = false -- volta ao normal
-
-                -- Ativa colisão novamente
+                humanoid.PlatformStand = false
                 for _, part in ipairs(char:GetChildren()) do
                     if part:IsA("BasePart") then
                         part.CanCollide = true
