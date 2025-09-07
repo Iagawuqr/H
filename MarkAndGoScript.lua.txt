@@ -28,9 +28,10 @@ end)
 goBtn.MouseButton1Click:Connect(function()
     if isFlying then return end
     local char = player.Character or player.CharacterAdded:Wait()
-    if savedCFrame and char and char:FindFirstChild("HumanoidRootPart") then
+    if savedCFrame and char and char:FindFirstChild("HumanoidRootPart") and char:FindFirstChild("Humanoid") then
         isFlying = true
         local hrp = char.HumanoidRootPart
+        local humanoid = char.Humanoid
         local startCFrame = hrp.CFrame
         local endCFrame = savedCFrame
         local distance = (startCFrame.Position - endCFrame.Position).magnitude
@@ -38,8 +39,17 @@ goBtn.MouseButton1Click:Connect(function()
 
         local elapsed = 0
         local runService = game:GetService("RunService")
-        -- Desabilita física para o movimento ser "pelo ar"
+
+        -- Protege o personagem de morrer durante o voo
         hrp.Anchored = true
+        humanoid.PlatformStand = true  -- impede animações/quedas/desmaios
+
+        -- Opcional: desativa colisão do HRP (ou de todos os parts do personagem)
+        for _, part in ipairs(char:GetChildren()) do
+            if part:IsA("BasePart") then
+                part.CanCollide = false
+            end
+        end
 
         local conn
         conn = runService.RenderStepped:Connect(function(dt)
@@ -51,6 +61,14 @@ goBtn.MouseButton1Click:Connect(function()
                 conn:Disconnect()
                 hrp.CFrame = endCFrame
                 hrp.Anchored = false
+                humanoid.PlatformStand = false -- volta ao normal
+
+                -- Ativa colisão novamente
+                for _, part in ipairs(char:GetChildren()) do
+                    if part:IsA("BasePart") then
+                        part.CanCollide = true
+                    end
+                end
                 isFlying = false
             end
         end)
