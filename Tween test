@@ -1,184 +1,154 @@
-local function GetMinhaBaseHitbox()
-    local plots = workspace:FindFirstChild("Plots")
-    if not plots then return nil end
-    for _, plot in pairs(plots:GetChildren()) do
-        local sign = plot:FindFirstChild("PlotSign")
-        if sign then
-            local yourBase = sign:FindFirstChild("YourBase")
-            if yourBase and yourBase.Enabled then
-                local hitbox = plot:FindFirstChild("DeliveryHitbox")
-                if hitbox then return hitbox end
+--[[
+ESP Script with Red Boxes, Toggle Button, and Open/Close GUI
+Tested for Roblox Lua (LocalScript). Place this in StarterPlayerScripts for best results.
+--]]
+
+-- Services
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+
+-- Variables
+local localPlayer = Players.LocalPlayer
+local espEnabled = false
+local guiOpen = true
+local espDrawings = {}
+
+-- Functions to manage ESP
+local function createESPForCharacter(character)
+    if not character then return end
+    local head = character:FindFirstChild("Head")
+    if not head then return end
+
+    -- BillboardGui for ESP (red frame)
+    local bb = Instance.new("BillboardGui")
+    bb.Name = "RedESP"
+    bb.Adornee = head
+    bb.Size = UDim2.new(4,0,5,0)
+    bb.AlwaysOnTop = true
+    bb.StudsOffset = Vector3.new(0, 1.5, 0)
+
+    local frame = Instance.new("Frame")
+    frame.Size = UDim2.new(1,0,1,0)
+    frame.BackgroundTransparency = 1
+    frame.BorderSizePixel = 0
+
+    local redOutline = Instance.new("UIStroke")
+    redOutline.Thickness = 4
+    redOutline.Color = Color3.new(1,0,0)
+    redOutline.Parent = frame
+
+    frame.Parent = bb
+    bb.Parent = game.CoreGui
+
+    return bb
+end
+
+local function removeAllESP()
+    for _, bb in ipairs(espDrawings) do
+        if bb and bb.Parent then
+            bb:Destroy()
+        end
+    end
+    espDrawings = {}
+end
+
+local function updateESP()
+    removeAllESP()
+    if not espEnabled then return end
+
+    for _, player in ipairs(Players:GetPlayers()) do
+        if player ~= localPlayer and player.Character and player.Character:FindFirstChild("Head") then
+            local bb = createESPForCharacter(player.Character)
+            if bb then
+                table.insert(espDrawings, bb)
             end
         end
     end
-    return nil
 end
 
-local player = game.Players.LocalPlayer
-local gui = Instance.new("ScreenGui")
-gui.Name = "PosMarkerGui"
-gui.ResetOnSpawn = false
-gui.Parent = player:WaitForChild("PlayerGui")
+-- UI Creation
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "ESPControlGui"
+screenGui.ResetOnSpawn = false
+screenGui.Parent = game.CoreGui
 
-local frame = Instance.new("Frame")
-frame.Size = UDim2.new(0, 200, 0, 180)
-frame.Position = UDim2.new(0, 20, 0, 100)
-frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-frame.BorderSizePixel = 0
-frame.BackgroundTransparency = 0.1
-frame.Parent = gui
+local mainFrame = Instance.new("Frame")
+mainFrame.Position = UDim2.new(0.75,0,0.3,0)
+mainFrame.Size = UDim2.new(0,200,0,120)
+mainFrame.BackgroundColor3 = Color3.new(0.15,0.15,0.15)
+mainFrame.BorderSizePixel = 0
+mainFrame.Visible = guiOpen
+mainFrame.Parent = screenGui
 
-local uiCorner = Instance.new("UICorner")
-uiCorner.CornerRadius = UDim.new(0, 10)
-uiCorner.Parent = frame
+local openCloseBtn = Instance.new("TextButton")
+openCloseBtn.Size = UDim2.new(0,200,0,30)
+openCloseBtn.Position = UDim2.new(0,0,0,0)
+openCloseBtn.Text = "Fechar Painel"
+openCloseBtn.BackgroundColor3 = Color3.new(0.2,0.2,0.2)
+openCloseBtn.TextColor3 = Color3.new(1,1,1)
+openCloseBtn.Parent = mainFrame
 
-local uiPadding = Instance.new("UIPadding")
-uiPadding.PaddingTop = UDim.new(0, 10)
-uiPadding.PaddingLeft = UDim.new(0, 10)
-uiPadding.PaddingRight = UDim.new(0, 10)
-uiPadding.PaddingBottom = UDim.new(0, 10)
-uiPadding.Parent = frame
+local toggleESPBtn = Instance.new("TextButton")
+toggleESPBtn.Size = UDim2.new(0,180,0,40)
+toggleESPBtn.Position = UDim2.new(0,10,0,40)
+toggleESPBtn.Text = "Ativar ESP"
+toggleESPBtn.BackgroundColor3 = Color3.new(0.8,0,0)
+toggleESPBtn.TextColor3 = Color3.new(1,1,1)
+toggleESPBtn.Parent = mainFrame
 
-local uiList = Instance.new("UIListLayout")
-uiList.Padding = UDim.new(0, 10)
-uiList.FillDirection = Enum.FillDirection.Vertical
-uiList.HorizontalAlignment = Enum.HorizontalAlignment.Center
-uiList.VerticalAlignment = Enum.VerticalAlignment.Top
-uiList.Parent = frame
+local openBtn = Instance.new("TextButton")
+openBtn.Size = UDim2.new(0,80,0,30)
+openBtn.Position = UDim2.new(0.75,0,0.25,0)
+openBtn.Text = "Abrir"
+openBtn.BackgroundColor3 = Color3.new(0.2,0.2,0.2)
+openBtn.TextColor3 = Color3.new(1,1,1)
+openBtn.Visible = not guiOpen
+openBtn.Parent = screenGui
 
-local function createButton(text)
-    local btn = Instance.new("TextButton")
-    btn.Size = UDim2.new(1, 0, 0, 40)
-    btn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-    btn.TextColor3 = Color3.fromRGB(255, 255, 255)
-    btn.Font = Enum.Font.GothamBold
-    btn.TextSize = 16
-    local corner = Instance.new("UICorner")
-    corner.CornerRadius = UDim.new(0, 8)
-    corner.Parent = btn
-    btn.Parent = frame
-    return btn
-end
+-- Button Functionality
+openCloseBtn.MouseButton1Click:Connect(function()
+    guiOpen = false
+    mainFrame.Visible = false
+    openBtn.Visible = true
+end)
 
-local markBtn = createButton("📍 Marcar Posição")
-local goBtn = createButton("🚀 Ir para Posição")
+openBtn.MouseButton1Click:Connect(function()
+    guiOpen = true
+    mainFrame.Visible = true
+    openBtn.Visible = false
+end)
 
-local speedLabel = Instance.new("TextLabel")
-speedLabel.Size = UDim2.new(1, 0, 0, 20)
-speedLabel.BackgroundTransparency = 1
-speedLabel.Text = "Velocidade: 50"
-speedLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-speedLabel.Font = Enum.Font.Gotham
-speedLabel.TextSize = 14
-speedLabel.Parent = frame
+toggleESPBtn.MouseButton1Click:Connect(function()
+    espEnabled = not espEnabled
+    toggleESPBtn.Text = espEnabled and "Desativar ESP" or "Ativar ESP"
+    toggleESPBtn.BackgroundColor3 = espEnabled and Color3.new(0,0.8,0) or Color3.new(0.8,0,0)
+    updateESP()
+end)
 
-local speedSlider = Instance.new("TextBox")
-speedSlider.Size = UDim2.new(1, 0, 0, 30)
-speedSlider.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-speedSlider.TextColor3 = Color3.fromRGB(255, 255, 255)
-speedSlider.Font = Enum.Font.Gotham
-speedSlider.TextSize = 14
-speedSlider.Text = "50"
-speedSlider.ClearTextOnFocus = false
-speedSlider.Parent = frame
+-- Auto-update ESP on character updates
+Players.PlayerAdded:Connect(function(player)
+    player.CharacterAdded:Connect(function()
+        if espEnabled then
+            wait(1)
+            updateESP()
+        end
+    end)
+end)
 
-local sliderCorner = Instance.new("UICorner")
-sliderCorner.CornerRadius = UDim.new(0, 6)
-sliderCorner.Parent = speedSlider
+Players.PlayerRemoving:Connect(function()
+    updateESP()
+end)
 
-local watermark = Instance.new("TextLabel")
-watermark.Size = UDim2.new(0, 80, 0, 15)
-watermark.Position = UDim2.new(1, -85, 1, -20)
-watermark.BackgroundTransparency = 1
-watermark.Text = "by sla & gui"
-watermark.TextColor3 = Color3.fromRGB(180, 180, 180)
-watermark.Font = Enum.Font.Gotham
-watermark.TextSize = 12
-watermark.TextTransparency = 0.5
-watermark.Parent = frame
-
-local savedCFrame = nil
-local isFlying = false
-local flySpeed = 50
-
-speedSlider.FocusLost:Connect(function(enterPressed)
-    local value = tonumber(speedSlider.Text)
-    if value and value > 0 then
-        flySpeed = math.clamp(value, 10, 300)
-        speedLabel.Text = "Velocidade: " .. flySpeed
-    else
-        speedSlider.Text = tostring(flySpeed)
+-- Reapply ESP when toggled
+RunService.RenderStepped:Connect(function()
+    if espEnabled then
+        updateESP()
     end
 end)
 
-markBtn.MouseButton1Click:Connect(function()
-    local char = player.Character or player.CharacterAdded:Wait()
-    if char and char:FindFirstChild("HumanoidRootPart") then
-        savedCFrame = char.HumanoidRootPart.CFrame
-        markBtn.Text = "✅ Posição Marcada!"
-        task.delay(1.5, function()
-            markBtn.Text = "📍 Marcar Posição"
-        end)
-    end
-end)
-
-goBtn.MouseButton1Click:Connect(function()
-    if isFlying then return end
-    local char = player.Character or player.CharacterAdded:Wait()
-    if savedCFrame and char and char:FindFirstChild("HumanoidRootPart") and char:FindFirstChild("Humanoid") then
-        isFlying = true
-        local hrp = char.HumanoidRootPart
-        local humanoid = char.Humanoid
-        local startPos = hrp.Position
-        local endPos = savedCFrame.Position
-        local originalOrientation = hrp.CFrame - hrp.Position
-        local distance = (startPos - endPos).Magnitude
-        local duration = math.clamp(distance / flySpeed, 0.2, 10)
-        local elapsed = 0
-        local runService = game:GetService("RunService")
-        local originalCanCollide = hrp.CanCollide
-        hrp.CanCollide = false
-        local conn
-        conn = runService.RenderStepped:Connect(function(dt)
-            elapsed = elapsed + dt
-            local alpha = math.clamp(elapsed / duration, 0, 1)
-            local newPos = startPos:Lerp(endPos, alpha)
-            hrp.CFrame = originalOrientation + newPos
-            if alpha >= 1 then
-                conn:Disconnect()
-                hrp.CFrame = originalOrientation + endPos
-                hrp.CanCollide = originalCanCollide
-                isFlying = false
-            end
-        end)
-    end
-end)
-
-local dragging = false
-local dragInput, mousePos, framePos
-
-frame.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 then
-        dragging = true
-        mousePos = input.Position
-        framePos = frame.Position
-        input.Changed:Connect(function()
-            if input.UserInputState == Enum.UserInputState.End then
-                dragging = false
-            end
-        end)
-    end
-end)
-
-frame.InputChanged:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseMovement then
-        dragInput = input
-    end
-end)
-
-game:GetService("UserInputService").InputChanged:Connect(function(input)
-    if input == dragInput and dragging then
-        local delta = input.Position - mousePos
-        frame.Position = UDim2.new(framePos.X.Scale, framePos.X.Offset + delta.X, framePos.Y.Scale, framePos.Y.Offset + delta.Y)
+-- Cleanup on script removal
+screenGui.AncestryChanged:Connect(function(_, parent)
+    if not parent then
+        removeAllESP()
     end
 end)
