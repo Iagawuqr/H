@@ -1,112 +1,118 @@
--- Criação dos elementos da interface
-local player = game.Players.LocalPlayer
+
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local Workspace = game:GetService("Workspace")
+
+local player = Players.LocalPlayer
+local camera = Workspace.CurrentCamera
+
+-- GUI
 local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "MeuScreenGui"
+screenGui.Name = "FloatGui"
 screenGui.ResetOnSpawn = false
 screenGui.Parent = player:WaitForChild("PlayerGui")
 
--- Frame principal
-local frame = Instance.new("Frame")
-frame.Size = UDim2.new(0, 250, 0, 110)
-frame.Position = UDim2.new(0.5, -125, 0.5, -55)
-frame.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
-frame.Active = true
-frame.Draggable = true
-frame.Parent = screenGui
+local button = Instance.new("TextButton")
+button.Size = UDim2.new(0, 160, 0, 50)
+button.Position = UDim2.new(1, -180, 0, 20)
+button.Text = "Float"
+button.BackgroundColor3 = Color3.fromRGB(50, 150, 255)
+button.TextColor3 = Color3.fromRGB(255, 255, 255)
+button.Font = Enum.Font.SourceSansBold
+button.TextSize = 20
+button.Parent = screenGui
 
--- Botão de fechar
-local closeButton = Instance.new("TextButton")
-closeButton.Size = UDim2.new(0, 30, 0, 30)
-closeButton.Position = UDim2.new(1, -35, 0, 5)
-closeButton.Text = "X"
-closeButton.Parent = frame
-closeButton.BackgroundColor3 = Color3.fromRGB(200, 70, 70)
-closeButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-closeButton.Font = Enum.Font.SourceSansBold
-closeButton.TextSize = 20
+-- Variáveis do personagem
+local character, humanoid, rootPart
 
--- Botão de abrir
-local openButton = Instance.new("TextButton")
-openButton.Size = UDim2.new(0, 30, 0, 30)
-openButton.Position = UDim2.new(0, 10, 0, 10)
-openButton.Text = ">"
-openButton.Visible = false
-openButton.Parent = screenGui
-openButton.BackgroundColor3 = Color3.fromRGB(70, 200, 70)
-openButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-openButton.Font = Enum.Font.SourceSansBold
-openButton.TextSize = 20
-
--- Botão toggle de ativar/desativar
-local toggleButton = Instance.new("TextButton")
-toggleButton.Size = UDim2.new(0, 200, 0, 40)
-toggleButton.Position = UDim2.new(0, 25, 0, 60)
-toggleButton.Text = "Desativado"
-toggleButton.Parent = frame
-toggleButton.BackgroundColor3 = Color3.fromRGB(100, 100, 200)
-toggleButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-toggleButton.Font = Enum.Font.SourceSansBold
-toggleButton.TextSize = 20
-
--- Plataforma flutuante
-local platform = Instance.new("Part")
-platform.Size = Vector3.new(6, 1, 6)
-platform.Anchored = true
-platform.Color = Color3.fromRGB(100, 255, 100)
-platform.Transparency = 0.2
-platform.Name = "PlataformaFlutuante"
-platform.CanCollide = true
-platform.Parent = workspace
-platform.Visible = false
-
--- Função para atualizar posição da plataforma
-local function atualizarPlataforma()
-	local character = player.Character
-	if character and character:FindFirstChild("HumanoidRootPart") then
-		local hrp = character.HumanoidRootPart
-		platform.Position = hrp.Position - Vector3.new(0, 3.5, 0)
-	end
+local function bindCharacter(char)
+    character = char
+    humanoid = character:WaitForChild("Humanoid")
+    rootPart = character:WaitForChild("HumanoidRootPart")
 end
 
--- Estado do toggle
-local ativado = false
+if player.Character then
+    bindCharacter(player.Character)
+end
+player.CharacterAdded:Connect(bindCharacter)
 
--- Lógica do botão toggle
-toggleButton.MouseButton1Click:Connect(function()
-	ativado = not ativado
-	if ativado then
-		toggleButton.Text = "Ativado"
-		toggleButton.BackgroundColor3 = Color3.fromRGB(70, 200, 70)
-		print("Ativado")
+local flutuando = false
+local bodyPos, bodyGyro, bodyVel
 
-		-- Ativar plataforma
-		atualizarPlataforma()
-		platform.Visible = true
-	else
-		toggleButton.Text = "Desativado"
-		toggleButton.BackgroundColor3 = Color3.fromRGB(100, 100, 200)
-		print("Desativado")
+local function startFlutuar()
+    if not rootPart or not humanoid then return end
+    flutuando = true
+    button.Text = "Parar Float"
 
-		-- Desativar plataforma
-		platform.Visible = false
-	end
-end)
+    local altura = rootPart.Position.Y
+    local velocidade = 38
+    local amplitude = 0.3
+    local velocidadeOscilacao = 2
+    local antiKickAmplitude = 0.2
 
--- Lógica para manter a plataforma atualizada
-game:GetService("RunService").Heartbeat:Connect(function()
-	if ativado and platform.Visible then
-		atualizarPlataforma()
-	end
-end)
+    -- BodyPosition para altura
+    bodyPos = Instance.new("BodyPosition")
+    bodyPos.MaxForce = Vector3.new(0,1e6,0)
+    bodyPos.P = 1e5
+    bodyPos.D = 1e4
+    bodyPos.Position = Vector3.new(rootPart.Position.X, altura, rootPart.Position.Z)
+    bodyPos.Parent = rootPart
 
--- Botão de fechar a interface
-closeButton.MouseButton1Click:Connect(function()
-	frame.Visible = false
-	openButton.Visible = true
-end)
+    -- BodyGyro para orientação
+    bodyGyro = Instance.new("BodyGyro")
+    bodyGyro.MaxTorque = Vector3.new(1e6,1e6,1e6)
+    bodyGyro.P = 1e5
+    bodyGyro.CFrame = rootPart.CFrame
+    bodyGyro.Parent = rootPart
 
--- Botão de abrir a interface
-openButton.MouseButton1Click:Connect(function()
-	frame.Visible = true
-	openButton.Visible = false
+    -- BodyVelocity para movimento horizontal
+    bodyVel = Instance.new("BodyVelocity")
+    bodyVel.MaxForce = Vector3.new(1e6,0,1e6)
+    bodyVel.Velocity = Vector3.new(0,0,0)
+    bodyVel.Parent = rootPart
+
+    humanoid.PlatformStand = true
+    humanoid.AutoRotate = false
+
+    local t0 = tick()
+    local conn
+    conn = RunService.RenderStepped:Connect(function(delta)
+        if not flutuando then
+            conn:Disconnect()
+            bodyPos:Destroy()
+            bodyGyro:Destroy()
+            bodyVel:Destroy()
+            humanoid.PlatformStand = false
+            humanoid.AutoRotate = true
+            return
+        end
+
+        -- Direção horizontal da câmera
+        local frente = camera.CFrame.LookVector
+        local moveDir = Vector3.new(frente.X,0,frente.Z)
+        if moveDir.Magnitude > 0 then
+            moveDir = moveDir.Unit
+        end
+
+        -- Anti-kick reforçado: pequena oscilação horizontal
+        local xOffset = math.sin(tick()*1.5) * antiKickAmplitude
+        local zOffset = math.cos(tick()*1.7) * antiKickAmplitude
+        bodyVel.Velocity = (moveDir * velocidade) + Vector3.new(xOffset,0,zOffset)
+
+        -- Oscilação vertical
+        local yOffset = math.sin((tick()-t0)*velocidadeOscilacao) * amplitude
+        bodyPos.Position = Vector3.new(rootPart.Position.X, altura + yOffset, rootPart.Position.Z)
+
+        -- Orientação
+        bodyGyro.CFrame = CFrame.new(rootPart.Position, rootPart.Position + moveDir)
+    end)
+end
+
+button.MouseButton1Click:Connect(function()
+    if flutuando then
+        flutuando = false
+        button.Text = "Float"
+    else
+        startFlutuar()
+    end
 end)
