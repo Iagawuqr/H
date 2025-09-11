@@ -1,118 +1,201 @@
+--[[
+    AKUNBITCH DEVOURER - Atualizado com delay customizável!
+    by LennonTheGoat (modificado por ChatGPT)
+]]
 
 local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
-local Workspace = game:GetService("Workspace")
-
 local player = Players.LocalPlayer
-local camera = Workspace.CurrentCamera
+local playerGui = player:WaitForChild("PlayerGui")
+local UserInputService = game:GetService("UserInputService")
 
--- GUI
-local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "FloatGui"
-screenGui.ResetOnSpawn = false
-screenGui.Parent = player:WaitForChild("PlayerGui")
-
-local button = Instance.new("TextButton")
-button.Size = UDim2.new(0, 160, 0, 50)
-button.Position = UDim2.new(1, -180, 0, 20)
-button.Text = "Float"
-button.BackgroundColor3 = Color3.fromRGB(50, 150, 255)
-button.TextColor3 = Color3.fromRGB(255, 255, 255)
-button.Font = Enum.Font.SourceSansBold
-button.TextSize = 20
-button.Parent = screenGui
-
--- Variáveis do personagem
-local character, humanoid, rootPart
-
-local function bindCharacter(char)
-    character = char
-    humanoid = character:WaitForChild("Humanoid")
-    rootPart = character:WaitForChild("HumanoidRootPart")
+-- ========== REMOVE TODOS ACESSÓRIOS/ROUPAS AO EXECUTAR O SCRIPT ==========
+local function removeAllAccessoriesFromCharacter()
+    local character = player.Character
+    if not character then return end
+    for _, item in ipairs(character:GetChildren()) do
+        if item:IsA("Accessory")
+            or item:IsA("LayeredClothing")
+            or item:IsA("Shirt")
+            or item:IsA("ShirtGraphic")
+            or item:IsA("Pants")
+            or item:IsA("BodyColors")
+            or item:IsA("CharacterMesh") then
+            pcall(function() item:Destroy() end)
+        end
+    end
 end
-
+player.CharacterAdded:Connect(function()
+    task.wait(0.2)
+    removeAllAccessoriesFromCharacter()
+end)
 if player.Character then
-    bindCharacter(player.Character)
+    task.defer(removeAllAccessoriesFromCharacter)
 end
-player.CharacterAdded:Connect(bindCharacter)
 
-local flutuando = false
-local bodyPos, bodyGyro, bodyVel
+-- ====== DIMENSIONAMENTO (70%) =======
+local SCALE = 0.10
+local PANEL_WIDTH, PANEL_HEIGHT = math.floor(212*SCALE), math.floor(110*SCALE)
+local PANEL_RADIUS = math.floor(13*SCALE)
+local TITLE_HEIGHT = math.floor(32*SCALE)
+local BTN_WIDTH = math.floor(0.89*PANEL_WIDTH)
+local BTN_HEIGHT = math.floor(34*SCALE)
+local BTN_RADIUS = math.floor(8*SCALE)
+local BTN_FONT_SIZE = math.floor(17*SCALE)
+local TITLE_FONT_SIZE = math.floor(19*SCALE)
+local ICON_SIZE = math.floor(16*SCALE)
+local BTN_ICON_PAD = math.floor(8*SCALE)
+local BTN_Y0 = math.floor(88*SCALE)
 
-local function startFlutuar()
-    if not rootPart or not humanoid then return end
-    flutuando = true
-    button.Text = "Parar Float"
+-- ====== DELAY PADRÃO =========
+local currentDelay = 0.07 -- [NOVO]
 
-    local altura = rootPart.Position.Y
-    local velocidade = 38
-    local amplitude = 0.3
-    local velocidadeOscilacao = 2
-    local antiKickAmplitude = 0.2
+-- ========== FPS DEVOURER ==========
+local FPSDevourer = {}
+do
+    FPSDevourer.running = false
+    local TOOL_NAME = "Tung Bat"
+    local function equipTungBat()
+        local character = player.Character
+        local backpack = player:FindFirstChild("Backpack")
+        if not character or not backpack then return false end
+        local tool = backpack:FindFirstChild(TOOL_NAME)
+        if tool then tool.Parent = character return true end
+        return false
+    end
+    local function unequipTungBat()
+        local character = player.Character
+        local backpack = player:FindFirstChild("Backpack")
+        if not character or not backpack then return false end
+        local tool = character:FindFirstChild(TOOL_NAME)
+        if tool then tool.Parent = backpack return true end
+        return false
+    end
 
-    -- BodyPosition para altura
-    bodyPos = Instance.new("BodyPosition")
-    bodyPos.MaxForce = Vector3.new(0,1e6,0)
-    bodyPos.P = 1e5
-    bodyPos.D = 1e4
-    bodyPos.Position = Vector3.new(rootPart.Position.X, altura, rootPart.Position.Z)
-    bodyPos.Parent = rootPart
-
-    -- BodyGyro para orientação
-    bodyGyro = Instance.new("BodyGyro")
-    bodyGyro.MaxTorque = Vector3.new(1e6,1e6,1e6)
-    bodyGyro.P = 1e5
-    bodyGyro.CFrame = rootPart.CFrame
-    bodyGyro.Parent = rootPart
-
-    -- BodyVelocity para movimento horizontal
-    bodyVel = Instance.new("BodyVelocity")
-    bodyVel.MaxForce = Vector3.new(1e6,0,1e6)
-    bodyVel.Velocity = Vector3.new(0,0,0)
-    bodyVel.Parent = rootPart
-
-    humanoid.PlatformStand = true
-    humanoid.AutoRotate = false
-
-    local t0 = tick()
-    local conn
-    conn = RunService.RenderStepped:Connect(function(delta)
-        if not flutuando then
-            conn:Disconnect()
-            bodyPos:Destroy()
-            bodyGyro:Destroy()
-            bodyVel:Destroy()
-            humanoid.PlatformStand = false
-            humanoid.AutoRotate = true
-            return
-        end
-
-        -- Direção horizontal da câmera
-        local frente = camera.CFrame.LookVector
-        local moveDir = Vector3.new(frente.X,0,frente.Z)
-        if moveDir.Magnitude > 0 then
-            moveDir = moveDir.Unit
-        end
-
-        -- Anti-kick reforçado: pequena oscilação horizontal
-        local xOffset = math.sin(tick()*1.5) * antiKickAmplitude
-        local zOffset = math.cos(tick()*1.7) * antiKickAmplitude
-        bodyVel.Velocity = (moveDir * velocidade) + Vector3.new(xOffset,0,zOffset)
-
-        -- Oscilação vertical
-        local yOffset = math.sin((tick()-t0)*velocidadeOscilacao) * amplitude
-        bodyPos.Position = Vector3.new(rootPart.Position.X, altura + yOffset, rootPart.Position.Z)
-
-        -- Orientação
-        bodyGyro.CFrame = CFrame.new(rootPart.Position, rootPart.Position + moveDir)
+    function FPSDevourer:Start()
+        if FPSDevourer.running then return end
+        FPSDevourer.running = true
+        FPSDevourer._stop = false
+        task.spawn(function()
+            while FPSDevourer.running and not FPSDevourer._stop do
+                equipTungBat()
+                task.wait(currentDelay / 2)
+                unequipTungBat()
+                task.wait(currentDelay / 2)
+            end
+        end)
+    end
+    function FPSDevourer:Stop()
+        FPSDevourer.running = false
+        FPSDevourer._stop = true
+        unequipTungBat()
+    end
+    player.CharacterAdded:Connect(function()
+        FPSDevourer.running = false
+        FPSDevourer._stop = true
     end)
 end
 
-button.MouseButton1Click:Connect(function()
-    if flutuando then
-        flutuando = false
-        button.Text = "Float"
+-- Remove antigo painel, se houver
+local old = playerGui:FindFirstChild("SunderHubDevourerPanel")
+if old then old:Destroy() end
+
+-- ========== PAINEL UI ==========
+local gui = Instance.new("ScreenGui")
+gui.Name = "SunderHubDevourerPanel"
+gui.ResetOnSpawn = false
+gui.Parent = playerGui
+
+local main = Instance.new("Frame", gui)
+main.Name = "MainPanel"
+main.Size = UDim2.new(0, PANEL_WIDTH, 0, PANEL_HEIGHT)
+main.Position = UDim2.new(1, -PANEL_WIDTH-10, 0, 10)
+main.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+main.BorderSizePixel = 0
+main.Active = true
+Instance.new("UICorner", main).CornerRadius = UDim.new(0, PANEL_RADIUS)
+
+do
+    local dragging, dragInput, dragStart, startPos
+    main.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = true
+            dragStart = input.Position
+            startPos = main.Position
+            input.Changed:Connect(function()
+                if input.UserInputState == Enum.UserInputState.End then dragging = false end
+            end)
+        end
+    end)
+    main.InputChanged:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+            dragInput = input
+        end
+    end)
+    UserInputService.InputChanged:Connect(function(input)
+        if dragging and input == dragInput then
+            local delta = input.Position - dragStart
+            main.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+        end
+    end)
+end
+
+local title = Instance.new("TextLabel", main)
+title.Size = UDim2.new(1, 0, 0, TITLE_HEIGHT)
+title.Position = UDim2.new(0,0,0,0)
+title.Text = "SUNDER HUB DEVOURER 💀"
+title.Font = Enum.Font.GothamBlack
+title.TextSize = TITLE_FONT_SIZE
+title.BackgroundTransparency = 1
+title.TextColor3 = Color3.fromRGB(255,255,255)
+title.TextStrokeTransparency = 0.08
+title.TextStrokeColor3 = Color3.fromRGB(220,220,220)
+
+-- ======= [NOVO] INPUT DE VELOCIDADE ===========
+local speedLabel = Instance.new("TextLabel", main)
+speedLabel.Size = UDim2.new(0, BTN_WIDTH, 0, math.floor(18*SCALE))
+speedLabel.Position = UDim2.new(0, math.floor((PANEL_WIDTH-BTN_WIDTH)/2), 0, math.floor(58*SCALE))
+speedLabel.BackgroundTransparency = 1
+speedLabel.Text = "Delay (s) entre spam:"
+speedLabel.Font = Enum.Font.GothamSemibold
+speedLabel.TextSize = math.floor(14*SCALE)
+speedLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+speedLabel.TextXAlignment = Enum.TextXAlignment.Left
+
+local delayInput = Instance.new("TextBox", main)
+delayInput.Size = UDim2.new(0, 52, 0, 22)
+delayInput.Position = UDim2.new(0, PANEL_WIDTH - 52 - 12, 0, math.floor(56*SCALE))
+delayInput.PlaceholderText = tostring(currentDelay)
+delayInput.Text = tostring(currentDelay)
+delayInput.Font = Enum.Font.Gotham
+delayInput.TextSize = 14
+delayInput.TextColor3 = Color3.new(1,1,1)
+delayInput.BackgroundColor3 = Color3.fromRGB(30,30,30)
+delayInput.BorderSizePixel = 0
+delayInput.ClearTextOnFocus = false
+Instance.new("UICorner", delayInput).CornerRadius = UDim.new(0, 6)
+
+delayInput.FocusLost:Connect(function(enterPressed)
+    local val = tonumber(delayInput.Text)
+    if val and val >= 0.01 and val <= 1.5 then
+        currentDelay = val
+        delayInput.TextColor3 = Color3.fromRGB(100, 255, 100)
     else
-        startFlutuar()
+        delayInput.Text = tostring(currentDelay)
+        delayInput.TextColor3 = Color3.fromRGB(255, 100, 100)
+        task.delay(1.2, function()
+            delayInput.TextColor3 = Color3.new(1,1,1)
+        end)
     end
 end)
+
+-- ========== Toggle ==========
+local function createCircleIcon(parent, y, on)
+    local icon = Instance.new("Frame", parent)
+    icon.Size = UDim2.new(0, ICON_SIZE, 0, ICON_SIZE)
+    icon.Position = UDim2.new(0, BTN_ICON_PAD, 0, y + math.floor((BTN_HEIGHT-ICON_SIZE)/2))
+    icon.BackgroundTransparency = 1
+    local circle = Instance.new("ImageLabel", icon)
+    circle.Size = UDim2.new(1, 0, 1, 0)
+    circle.Position = UDim2.new(0,0,0,0)
+    circle.BackgroundTransparency = 1
+    circle.Image = "rbxassetid://101379
